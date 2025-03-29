@@ -13,9 +13,33 @@ services:
       - buffet-pos-network
     restart: on-failure
 
+  backend:
+    build:
+      context: .
+      dockerfile: docker/prod.Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      - db
+    environment:
+      - FRONTEND_URL=${FRONTEND_URL}
+      - DB_HOST=${DB_HOST}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PORT=${DB_PORT}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - buffet-pos-network
+    restart: on-failure
+
 volumes:
   db-data:
     driver: local
+
 networks:
   buffet-pos-network:
     driver: bridge
