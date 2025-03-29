@@ -5,6 +5,7 @@ import (
 
 	"github.com/cs471-buffetpos/buffet-pos-backend/domain/models"
 	"github.com/cs471-buffetpos/buffet-pos-backend/domain/requests"
+	"github.com/cs471-buffetpos/buffet-pos-backend/domain/responses"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -49,4 +50,27 @@ func (o *OrderItemGormRepository) CreateOrderItem(ctx context.Context, orderItem
 	}
 	result := o.DB.Create(newOrderItem)
 	return result.Error
+}
+
+func (o *OrderItemGormRepository) GetAmountBestSellingMenu(ctx context.Context, amount int) ([]responses.NumberMenu, error) {
+	var numberMenus []responses.NumberMenu
+
+	err := o.DB.Table("order_items").
+		Select("menus.id, menus.name, menus.description, menus.category_id, menus.image_url, menus.is_available, SUM(order_items.quantity) as total_quantity").
+		Joins("JOIN menus ON menus.id = order_items.menu_id").
+		Group("menus.id, menus.name, menus.description, menus.category_id, menus.image_url, menus.is_available").
+		Order("total_quantity DESC").
+		Limit(amount).
+		Scan(&numberMenus).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// เพิ่มหมายเลขอันดับกำกับให้กับแต่ละเมนู
+	for i := range numberMenus {
+		numberMenus[i].Number = i + 1
+	}
+
+	return numberMenus, nil
 }

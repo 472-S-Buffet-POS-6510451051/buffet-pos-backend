@@ -37,11 +37,14 @@ func main() {
 	categoryRepo := gorm.NewCategoryGormRepository(db)
 	menuRepo := gorm.NewMenuGormRepository(db)
 	orderRepo := gorm.NewOrderGormRepository(db)
+	orderItemRepo := gorm.NewOrderItemGormRepository(db)
+	customerRepo := gorm.NewCustomerGormRepository(db)
+	staffNotiRepo := gorm.NewStaffNotificationGormRepository(db)
 
 	userService := usecases.NewUserService(userRepo, cfg)
 	userHandler := rest.NewUserHandler(userService)
 
-	invoiceService := usecases.NewInvoiceService(invoiceRepo, tableRepo, orderRepo, cfg)
+	invoiceService := usecases.NewInvoiceService(invoiceRepo, tableRepo, orderRepo, settingRepo, cfg)
 	tableService := usecases.NewTableService(tableRepo, invoiceRepo, settingRepo, cfg)
 
 	tableHandler := rest.NewTableHandler(tableService)
@@ -53,9 +56,17 @@ func main() {
 	menuService := usecases.NewMenuService(menuRepo, cfg, cld)
 	menuHandler := rest.NewMenuHandler(menuService)
 
-	orderItemRepo := gorm.NewOrderItemGormRepository(db)
 	orderService := usecases.NewOrderService(orderRepo, orderItemRepo, menuRepo, cfg)
 	orderHandler := rest.NewOrderHandler(orderService)
+
+	customerService := usecases.NewCustomerService(customerRepo, invoiceRepo, settingRepo, cfg)
+	customerHandler := rest.NewCustomerHandler(customerService)
+
+	orderItemService := usecases.NewOrderItemService(orderItemRepo, cfg)
+	orderItemHandler := rest.NewOrderItemHandler(orderItemService)
+
+	staffNotiService := usecases.NewStaffNotificationService(staffNotiRepo, cfg)
+	staffNotiHandler := rest.NewStaffNotificationHandler(staffNotiService)
 
 	app.Use(cors.New())
 
@@ -69,6 +80,9 @@ func main() {
 	auth.Post("/register", userHandler.Register)
 	auth.Post("/login", userHandler.Login)
 
+	general := app.Group("/general")
+	general.Get("/menus/best-selling", orderItemHandler.GetBestSellingMenu)
+
 	customer := app.Group("/customer", middleware.CustomerMiddleware(cfg, tableService))
 	customer.Get("/menus", menuHandler.CustomerFindAll)
 	customer.Get("/menus/:id", menuHandler.CustomerFindByID)
@@ -77,6 +91,16 @@ func main() {
 	customer.Get("/tables", tableHandler.FindCustomerTable)
 	customer.Get("/categories", categoryHandler.FindAllCategories)
 	customer.Get("/invoices", invoiceHandler.CustomerGetInvoice)
+	// staff-notification : calling staff
+	customer.Post("/staff-notifications", staffNotiHandler.NotifyStaff)
+	customer.Get("/staff-notifications/:table_id", staffNotiHandler.GetStaffNotificationByTableId)
+
+	loyalty := app.Group("/loyalty", middleware.AuthMiddleware(cfg), middleware.RoleMiddleware(models.Employee, models.Manager))
+	loyalty.Post("/register", customerHandler.Register)
+	loyalty.Get("/customers", customerHandler.FindAll)
+	loyalty.Post("/add-point", customerHandler.AddPoint)
+	loyalty.Post("/redeem", customerHandler.RedeemPoint)
+	loyalty.Delete("/customer/:id", customerHandler.Delete)
 
 	manage := app.Group("/manage", middleware.AuthMiddleware(cfg), middleware.RoleMiddleware(models.Employee, models.Manager))
 	manage.Get("/tables", tableHandler.FindAllTables)
@@ -90,6 +114,7 @@ func main() {
 	manage.Get("/invoices/unpaid", invoiceHandler.GetAllUnpaidInvoices)
 	manage.Put("/invoices/set-paid", invoiceHandler.SetInvoicePaid)
 	manage.Delete("/invoices/:invoice_id", invoiceHandler.CancelInvoice)
+	manage.Put("/invoices/charge-food-overweight", invoiceHandler.ChargeFeeFoodOverWeight)
 
 	manage.Get("/categories", categoryHandler.FindAllCategories)
 	manage.Get("/categories/:id", categoryHandler.FindCategoryByID)
@@ -97,6 +122,7 @@ func main() {
 	manage.Delete("/categories/:id", categoryHandler.DeleteCategory)
 
 	manage.Get("/menus", menuHandler.FindAll)
+
 	manage.Get("/menus/:id", menuHandler.FindByID)
 	manage.Post("/menus", menuHandler.Create)
 	manage.Put("/menus", menuHandler.Edit)
@@ -108,6 +134,15 @@ func main() {
 
 	manage.Get("/settings/price-per-person", settingHandler.GetPricePerPerson)
 	manage.Put("/settings/price-per-person", settingHandler.SetPricePerPerson)
+	manage.Get("/settings/use-point-per-person", settingHandler.GetUsePointPerPerson)
+	manage.Put("/settings/use-point-per-person", settingHandler.SetUsePointPerPerson)
+	manage.Get("/settings/price-fee-food-overweight", settingHandler.GetPriceFeeFoodOverWeight)
+	manage.Put("/settings/price-fee-food-overweight", settingHandler.SetPriceFeeFoodOverWeight)
 
-	app.Listen(":3000")
+	// staff notification
+	manage.Get("/staff-notifications", staffNotiHandler.GetAllStaffNotification)
+	manage.Get("/staff-notifications/:status", staffNotiHandler.GetAllStaffNotificationByStatus)
+	manage.Put("/staff-notifications", staffNotiHandler.UpdateStaffNotificationStatus)
+
+	app.Listen(":3001")
 }

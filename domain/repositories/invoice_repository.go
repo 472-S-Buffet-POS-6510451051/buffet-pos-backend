@@ -14,4 +14,7 @@ type InvoiceRepository interface {
 	GetAllUnpaid(ctx context.Context) ([]models.Invoice, error)
 	GetAllPaid(ctx context.Context) ([]models.Invoice, error)
 	GetByTableID(ctx context.Context, tableID string) (*models.Invoice, error)
+	AddTotalPriceByID(ctx context.Context, invoiceID string, price float64) error
+	SetPriceFeeFoodOverWeightByID(ctx context.Context, invoiceID string, price float64) error
+	SetCustomerPhoneByID(ctx context.Context, invoiceID string, customerPhone string) error
 }

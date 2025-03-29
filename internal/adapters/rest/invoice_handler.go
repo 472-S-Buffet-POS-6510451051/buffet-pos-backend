@@ -14,6 +14,7 @@ type InvoiceHandler interface {
 	SetInvoicePaid(c *fiber.Ctx) error
 	CancelInvoice(c *fiber.Ctx) error
 	CustomerGetInvoice(c *fiber.Ctx) error
+	ChargeFeeFoodOverWeight(c *fiber.Ctx) error
 }
 
 type invoiceHandler struct {
@@ -146,3 +147,40 @@ func (i *invoiceHandler) CustomerGetInvoice(c *fiber.Ctx) error {
 	}
 	return c.JSON(invoice)
 }
+
+// Charge Fee Food Overweight
+// @Summary Charge Fee Food Overweight
+// @Description Charge Fee Food Overweight By ID
+// @Tags Manage
+// @Accept json
+// @Produce json
+// @Param request body requests.ChargeFeeFoodOverWeightRequest true "Charge Fee Food Overweight Request"
+// @Success 200 {object}  responses.SuccessResponse
+// @Router /manage/invoices/charge-food-overweight [put]
+// @Security ApiKeyAuth
+// @param Authorization header string true "Authorization"
+func (i *invoiceHandler) ChargeFeeFoodOverWeight(c *fiber.Ctx) error {
+	var req *requests.ChargeFeeFoodOverWeightRequest
+	if err := c.BodyParser(&req); err != nil  {
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	if err := utils.ValidateStruct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(err)
+	}
+
+	err := i.service.ChargeFeeFoodOverWeight(c.Context(), req)
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return  c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Charge Fee Food Overweight in invoice successfully",
+	})
+}
+

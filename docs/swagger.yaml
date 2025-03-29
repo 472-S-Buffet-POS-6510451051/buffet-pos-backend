@@ -30,6 +30,16 @@ definitions:
     x-enum-varnames:
     - Manager
     - Employee
+  models.StaffNotificationStatus:
+    enum:
+    - pending
+    - accepted
+    - rejected
+    type: string
+    x-enum-varnames:
+    - PENDING
+    - ACCEPTED
+    - REJECTED
   requests.AddCategoryRequest:
     properties:
       categoryName:
@@ -54,6 +64,59 @@ definitions:
     - id
     - peopleAmount
     type: object
+  requests.ChargeFeeFoodOverWeightRequest:
+    properties:
+      invoice_id:
+        type: string
+      total_food_weight:
+        type: number
+    required:
+    - invoice_id
+    - total_food_weight
+    type: object
+  requests.CustomerAddPointRequest:
+    properties:
+      phone:
+        type: string
+      pin:
+        type: string
+      point:
+        type: integer
+    required:
+    - phone
+    - pin
+    - point
+    type: object
+  requests.CustomerRedeemRequest:
+    properties:
+      invoice_id:
+        type: string
+      phone:
+        type: string
+      pin:
+        type: string
+    required:
+    - invoice_id
+    - phone
+    - pin
+    type: object
+  requests.CustomerRegisterRequest:
+    properties:
+      phone:
+        type: string
+      pin:
+        type: string
+    required:
+    - phone
+    - pin
+    type: object
+  requests.EditPriceFeeFoodOverWeight:
+    properties:
+      price_fee_food_overweight:
+        type: number
+    required:
+    - price_fee_food_overweight
+    type: object
   requests.EditPricePerPerson:
     properties:
       price:
@@ -71,6 +134,13 @@ definitions:
     - id
     - tableName
     type: object
+  requests.EditUsePointPerPerson:
+    properties:
+      use_point_per_person:
+        type: integer
+    required:
+    - use_point_per_person
+    type: object
   requests.OrderItemRequest:
     properties:
       menu_id:
@@ -80,6 +150,13 @@ definitions:
     required:
     - menu_id
     - quantity
+    type: object
+  requests.StaffNotificationRequest:
+    properties:
+      table_id:
+        type: string
+    required:
+    - table_id
     type: object
   requests.UpdateInvoiceStatusRequest:
     properties:
@@ -97,6 +174,13 @@ definitions:
     required:
     - status
     - table_id
+    type: object
+  requests.UpdateStaffNotificationRequest:
+    properties:
+      staff_notification_id:
+        type: string
+      status:
+        $ref: '#/definitions/models.StaffNotificationStatus'
     type: object
   requests.UserAddOrderRequest:
     properties:
@@ -130,6 +214,15 @@ definitions:
     - name
     - password
     type: object
+  responses.BaseCustomer:
+    properties:
+      id:
+        type: string
+      phone:
+        type: string
+      point:
+        type: integer
+    type: object
   responses.CategoryDetail:
     properties:
       createdAt:
@@ -145,12 +238,16 @@ definitions:
     properties:
       createdAt:
         type: string
+      customer_phone:
+        type: string
       id:
         type: string
       isPaid:
         type: boolean
       peopleAmount:
         type: integer
+      price_fee_food_overweight:
+        type: number
       tableId:
         type: string
       totalPrice:
@@ -172,6 +269,23 @@ definitions:
         type: boolean
       name:
         type: string
+    type: object
+  responses.NumberMenu:
+    properties:
+      categoryId:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      imageUrl:
+        type: string
+      isAvailable:
+        type: boolean
+      name:
+        type: string
+      number:
+        type: integer
     type: object
   responses.OrderDetail:
     properties:
@@ -195,6 +309,19 @@ definitions:
       key:
         type: string
       value:
+        type: string
+    type: object
+  responses.StaffNotificationBase:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      status:
+        $ref: '#/definitions/models.StaffNotificationStatus'
+      table_id:
+        type: string
+      updatedAt:
         type: string
     type: object
   responses.SuccessResponse:
@@ -432,6 +559,57 @@ paths:
       summary: Get Order History
       tags:
       - Customer
+  /customer/staff-notifications:
+    post:
+      consumes:
+      - application/json
+      description: Notify to Staff
+      parameters:
+      - description: Notify to Staff request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.StaffNotificationRequest'
+      - description: Access Code
+        in: header
+        name: AccessCode
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+      summary: Notify to Staff
+      tags:
+      - Customer
+  /customer/staff-notifications/{table_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get Staff Notification By Table ID
+      parameters:
+      - description: Table ID
+        in: path
+        name: table_id
+        required: true
+        type: string
+      - description: Access Code
+        in: header
+        name: AccessCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.StaffNotificationBase'
+      summary: Get Staff Notification By Table ID
+      tags:
+      - Customer
   /customer/tables:
     get:
       consumes:
@@ -453,6 +631,165 @@ paths:
       summary: Find Customer Table
       tags:
       - Customer
+  /general/menus/best-selling:
+    get:
+      consumes:
+      - application/json
+      description: Get Best Selling Menu
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.NumberMenu'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Get Best Selling Menu
+      tags:
+      - General
+  /loyalty/add-point:
+    post:
+      consumes:
+      - application/json
+      description: Add points to a customer's account
+      parameters:
+      - description: Add Point Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CustomerAddPointRequest'
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.BaseCustomer'
+      security:
+      - ApiKeyAuth: []
+      summary: Add Points to Customer
+      tags:
+      - Loyalty
+  /loyalty/customer/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a customer by their ID
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a Customer
+      tags:
+      - Loyalty
+  /loyalty/customers:
+    get:
+      consumes:
+      - application/json
+      description: Find all customers
+      parameters:
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.BaseCustomer'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Find All Customer
+      tags:
+      - Loyalty
+  /loyalty/redeem:
+    post:
+      consumes:
+      - application/json
+      description: Redeem points from a customer's account
+      parameters:
+      - description: Redeem Point Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CustomerRedeemRequest'
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.BaseCustomer'
+      security:
+      - ApiKeyAuth: []
+      summary: Redeem Points from Customer
+      tags:
+      - Loyalty
+  /loyalty/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new customer in the system
+      parameters:
+      - description: Register Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CustomerRegisterRequest'
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Register a New Customer
+      tags:
+      - Loyalty
   /manage/categories:
     get:
       consumes:
@@ -587,6 +924,35 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Cancel Invoice
+      tags:
+      - Manage
+  /manage/invoices/charge-food-overweight:
+    put:
+      consumes:
+      - application/json
+      description: Charge Fee Food Overweight By ID
+      parameters:
+      - description: Charge Fee Food Overweight Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.ChargeFeeFoodOverWeightRequest'
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Charge Fee Food Overweight
       tags:
       - Manage
   /manage/invoices/paid:
@@ -916,6 +1282,57 @@ paths:
       summary: Get Orders By Table ID
       tags:
       - Manage
+  /manage/settings/price-fee-food-overweight:
+    get:
+      consumes:
+      - application/json
+      description: Get price fee food overweight in setting.
+      parameters:
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SettingResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Price Fee Food Overweight
+      tags:
+      - Manage
+    put:
+      consumes:
+      - application/json
+      description: Update price fee overweight in setting.
+      parameters:
+      - description: Edit Price Fee Food Overweight Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.EditPriceFeeFoodOverWeight'
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Set Price Fee Food Overweight
+      tags:
+      - Manage
   /manage/settings/price-per-person:
     get:
       consumes:
@@ -965,6 +1382,136 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Set Price Per Person
+      tags:
+      - Manage
+  /manage/settings/use-point-per-person:
+    get:
+      consumes:
+      - application/json
+      description: Get use point per person in setting.
+      parameters:
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SettingResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Use Point Per Person
+      tags:
+      - Manage
+    put:
+      consumes:
+      - application/json
+      description: Update use point per person in setting.
+      parameters:
+      - description: Edit Use Point Per Person Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.EditUsePointPerPerson'
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Set Use Point Per Person
+      tags:
+      - Manage
+  /manage/staff-notifications:
+    get:
+      consumes:
+      - application/json
+      description: Get All Staff Notification.
+      parameters:
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.StaffNotificationBase'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Get All Staff Notification
+      tags:
+      - Manage
+    put:
+      consumes:
+      - application/json
+      description: Set invoice as paid.
+      parameters:
+      - description: Update Staff Notification Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateStaffNotificationRequest'
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update Status Staff Notification
+      tags:
+      - Manage
+  /manage/staff-notifications/{status}:
+    get:
+      consumes:
+      - application/json
+      description: Get All Staff Notification By Status
+      parameters:
+      - description: Status Notification
+        in: path
+        name: status
+        required: true
+        type: string
+      - description: Authorization
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.StaffNotificationBase'
+      security:
+      - ApiKeyAuth: []
+      summary: Get All Staff Notification By Status
       tags:
       - Manage
   /manage/tables:

@@ -22,6 +22,8 @@ func main() {
 		&models.Invoice{},
 		&models.Order{},
 		&models.OrderItem{},
+		&models.Customer{},
+		&models.StaffNotification{},
 	); err != nil {
 		log.Fatal(err)
 	}
@@ -35,21 +37,32 @@ func main() {
 }
 
 func initializeDefaultSettings(db *gorm.DB) error {
-	const pricePerPersonKey = "pricePerPerson"
-	const defaultPricePerPerson = "250.00"
-	var setting models.Setting
-	if err := db.Where("key = ?", pricePerPersonKey).First(&setting).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			setting = models.Setting{
-				Key:   pricePerPersonKey,
-				Value: defaultPricePerPerson,
-			}
-			if err := db.Create(&setting).Error; err != nil {
+	settings := []models.Setting{
+		{
+			Key: "pricePerPerson", 
+			Value: "250.00",
+		},
+		{
+			Key: "usePointPerPerson",
+			Value: "10",
+		},
+		{
+			Key: "priceFeeFoodOverWeight",
+			Value : "10",
+		},	
+	}
+
+	for _, setting := range settings {
+		var existingSetting models.Setting
+		if err := db.Where("key = ?", setting.Key).First(&existingSetting).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				if err := db.Create(&setting).Error; err != nil {
+					return err
+				}
+				log.Printf("✅ Inserted default setting for %s: %s\n", setting.Key, setting.Value)
+			} else {
 				return err
 			}
-			log.Printf("✅ Inserted default setting for %s: %s\n", pricePerPersonKey, defaultPricePerPerson)
-		} else {
-			return err
 		}
 	}
 	return nil

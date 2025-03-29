@@ -16,3 +16,8 @@ type BaseMenu struct {
 type MenuDetail struct {
 	BaseMenu
 }
+
+type NumberMenu struct {
+	BaseMenu
+	Number 		int 	`json:"number"`
+}

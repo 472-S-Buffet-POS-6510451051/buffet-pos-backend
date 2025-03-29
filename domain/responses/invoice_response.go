@@ -11,6 +11,8 @@ type BaseInvoice struct {
 	PeopleAmount int        `json:"peopleAmount"`
 	TotalPrice   float64    `json:"totalPrice"`
 	IsPaid       bool       `json:"isPaid"`
+	CustomerPhone string	`json:"customer_phone"`
+	PriceFeeFoodOverWeight float64 	 `json:"price_fee_food_overweight"`
 	TableID      *uuid.UUID `json:"tableId"`
 	CreatedAt    time.Time  `json:"createdAt"`
 	UpdatedAt    time.Time  `json:"updatedAt"`
